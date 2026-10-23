@@ -1,0 +1,78 @@
+# Home Budget, as a system service.
+#
+# Install:
+#   sudo cp deploy/home-budget.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now home-budget
+#
+# See deploy/README.md for the user, directories, and reverse proxy this
+# expects. Nothing here is created automatically.
+
+[Unit]
+Description=Home Budget - envelope budgeting for a household
+Documentation=https://github.com/harknett/home_budget
+# Wants, not Requires: the network being briefly absent is not a reason to
+# refuse to start, and the socket binds loopback anyway.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=home-budget
+Group=home-budget
+
+# The built application. Read-only to the service; see ProtectSystem below.
+WorkingDirectory=/opt/home-budget
+
+# systemd creates and owns this, so the unit is enough to provision the state
+# directory on a fresh machine: /var/lib/home-budget.
+StateDirectory=home-budget
+StateDirectoryMode=0700
+Environment=DATA_DIR=/var/lib/home-budget
+
+Environment=NODE_ENV=production
+# Loopback only. The service is expected to sit behind a reverse proxy that
+# terminates TLS; binding publicly would expose it over plain HTTP.
+Environment=HOSTNAME=127.0.0.1
+# See the port table in deploy/README.md. Two services binding the same
+# loopback port means whichever starts second dies with EADDRINUSE.
+Environment=PORT=3007
+
+# The standalone server, which needs no node_modules and honours HOSTNAME.
+# `next start` ignores HOSTNAME and would bind every interface.
+ExecStart=/usr/bin/node /opt/home-budget/server.js
+
+KillSignal=SIGTERM
+TimeoutStopSec=20
+Restart=on-failure
+RestartSec=5s
+
+# --- confinement ---------------------------------------------------------
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=false
+# Node needs AF_INET to listen; AF_UNIX for the usual internals.
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=home-budget
+
+[Install]
+WantedBy=multi-user.target

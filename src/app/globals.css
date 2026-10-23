@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+/*
+  Dense by design. The budget is read on a phone in a checkout line, and the
+  point of the main screen is to see as many envelopes as possible at once:
+  rows are flat and short, numbers are right-aligned in tabular figures, and
+  colour is spent only on what needs attention — money that is negative or
+  short of its target. No cards, no shadows, no rounded bubbles.
+*/
+@theme {
+  --color-paper: #fafaf9;
+  --color-ink: #18181b;
+  --color-panel: #27272a;
+  --color-rule: #e4e4e7;
+  --color-short: #b91c1c;
+  --color-good: #15803d;
+  --color-warn: #b45309;
+}
+
+:root {
+  color-scheme: light dark;
+}
+
+/*
+  A phone keyboard zooms the page in when it focuses an input whose text is
+  under 16px, and never zooms back out. The floor is enforced here rather
+  than per-field; the rest of the UI can stay small.
+*/
+input,
+select,
+textarea {
+  font-size: max(1rem, 16px);
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
